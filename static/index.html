@@ -642,8 +642,9 @@ window.regenerate = async function(index, encodedTitle) {
   updateStatus(index, quality);
 };
 
-// ===== MAIN GENERATE FLOW =====
+// ===== MAIN GENERATE FLOW (PARALLEL) =====
 let isGenerating = false;
+const MAX_CONCURRENT = 3; // Generate up to 3 images at once
 
 DOM.btnGenerate.addEventListener('click', async () => {
   if (isGenerating) return;
@@ -662,46 +663,49 @@ DOM.btnGenerate.addEventListener('click', async () => {
   // Show progress
   DOM.progressSection.style.display = 'block';
   DOM.progressTotal.textContent = titles.length;
+  DOM.progressStep.textContent = '正在并行生成图片...';
 
-  const results = []; // {status, ...}
+  // Create all cards first
+  const prompts = [];
+  for (let i = 0; i < titles.length; i++) {
+    const prompt = generatePrompt(titles[i]);
+    prompts.push(prompt);
+    const card = createCard(i, titles[i], prompt, i * 60);
+    DOM.resultsGrid.appendChild(card);
+  }
+
+  let doneCount = 0;
   let okCount = 0, warnCount = 0, failCount = 0;
 
-  for (let i = 0; i < titles.length; i++) {
-    const title = titles[i];
-    const prompt = generatePrompt(title);
-
-    // Update progress
-    DOM.progressCurrent.textContent = i + 1;
-    const pct = Math.round(((i) / titles.length) * 100);
+  function updateProgress() {
+    doneCount++;
+    DOM.progressCurrent.textContent = doneCount;
+    const pct = Math.round((doneCount / titles.length) * 100);
     DOM.progressFill.style.width = pct + '%';
     DOM.progressPercent.textContent = pct + '%';
+    DOM.progressStep.textContent = doneCount < titles.length
+      ? `已完成 ${doneCount}/${titles.length}，继续生成中...`
+      : '全部完成！';
+  }
 
-    // Step 1: Analyzing
-    DOM.progressStep.textContent = `正在分析「${title.slice(0, 12)}${title.length > 12 ? '...' : ''}」`;
-    await sleep(200);
+  // Process in batches of MAX_CONCURRENT
+  for (let batch = 0; batch < titles.length; batch += MAX_CONCURRENT) {
+    const batchEnd = Math.min(batch + MAX_CONCURRENT, titles.length);
+    const tasks = [];
 
-    // Step 2: Create card
-    DOM.progressStep.textContent = `正在调用AI生成图片（第${i+1}张）...`;
-    const card = createCard(i, title, prompt, 0);
-    DOM.resultsGrid.appendChild(card);
-    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    for (let i = batch; i < batchEnd; i++) {
+      tasks.push((async (idx) => {
+        const loaded = await generateAndLoad(idx, prompts[idx]);
+        const quality = assessQuality(titles[idx], loaded);
+        updateStatus(idx, quality);
+        if (quality.status === 'ok') okCount++;
+        else if (quality.status === 'warn') warnCount++;
+        else failCount++;
+        updateProgress();
+      })(i));
+    }
 
-    // Step 3: Generate image via backend API
-    const loaded = await generateAndLoad(i, prompt);
-
-    // Assess
-    const quality = assessQuality(title, loaded);
-    updateStatus(i, quality);
-    results.push(quality);
-
-    if (quality.status === 'ok') okCount++;
-    else if (quality.status === 'warn') warnCount++;
-    else failCount++;
-
-    // Update progress bar
-    const pctDone = Math.round(((i + 1) / titles.length) * 100);
-    DOM.progressFill.style.width = pctDone + '%';
-    DOM.progressPercent.textContent = pctDone + '%';
+    await Promise.all(tasks);
   }
 
   // Done

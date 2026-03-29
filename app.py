@@ -32,7 +32,6 @@ if not BASE_URL:
 MODEL_PATH = "vendors/google/v1/nano-banana-pro/generation"
 FALLBACK_MODEL_PATH = "vendors/google/v1/nano-banana/generation"
 
-POLL_INTERVAL = 10
 MAX_WAIT = 300
 
 HEADERS = {
@@ -69,9 +68,10 @@ def create_task(prompt, aspect_ratio="9:16", model_path=MODEL_PATH):
 
 
 def poll_task(task_id, model_path):
-    """Poll until task completes."""
+    """Poll until task completes. Uses aggressive early polling then backs off."""
     url = f"{BASE_URL}/{model_path}/{task_id}"
     start = time.time()
+    attempt = 0
     while True:
         if time.time() - start > MAX_WAIT:
             raise TimeoutError("Timed out")
@@ -85,7 +85,10 @@ def poll_task(task_id, model_path):
         if status == "failed":
             err = resp.get("task_info", {}).get("error", {})
             raise RuntimeError(err.get("detail") or err.get("title") or str(err))
-        time.sleep(POLL_INTERVAL)
+        # Aggressive early polling: 2s for first 5 attempts, then 5s
+        attempt += 1
+        wait = 2 if attempt <= 5 else 5
+        time.sleep(wait)
 
 
 def generate_image(prompt, aspect_ratio="9:16"):
