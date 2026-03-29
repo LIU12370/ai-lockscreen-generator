@@ -366,22 +366,25 @@ const PEOPLE_MAP = {
   '农民':'farmer in field working harvest','渔民':'fisherman on boat at sea',
   '牧羊人':'shepherd with flock pastoral','手艺人':'craftsman artisan working handmade',
   '僧人':'monk meditating peaceful','武者':'martial artist kung fu practitioner',
-  '运动员':'athlete sports dynamic action','瑜伽':'person practicing yoga stretching pose',
-  '读书':'person reading a book absorbed','写字':'person writing calligraphy',
-  '奔跑':'person running jogging dynamic motion','散步':'person walking leisurely strolling',
-  '跳舞':'person dancing expressive movement','唱歌':'person singing vocalist performer',
-  '做饭':'person cooking in kitchen homely','喝茶':'person drinking tea serene meditative',
-  '打伞':'person holding umbrella in rain','戴帽子':'person wearing stylish hat',
+  '运动员':'athlete sports dynamic action',
   '背影':'person seen from behind silhouette contemplative',
-  '仰望':'person looking up at sky contemplative','眺望':'person gazing into distance panoramic',
   '拥抱':'people hugging embrace warm tender','牵手':'couple holding hands walking together',
-  '笑':'person smiling happy joyful radiant','哭':'person with tears emotional poignant',
 };
 
 // ---------- SUBJECT: ANIMALS ----------
 const ANIMAL_MAP = {
   '猫':'cute cat feline close-up portrait soft fur','小猫':'adorable kitten playful tiny',
   '狗':'loyal dog canine portrait expressive eyes','小狗':'cute puppy playful adorable',
+  '金毛':'golden retriever dog friendly fluffy warm','金毛犬':'golden retriever dog loyal beautiful fur',
+  '拉布拉多':'labrador retriever dog friendly loyal','哈士奇':'husky dog blue eyes fluffy wolf-like',
+  '柴犬':'shiba inu dog cute japanese breed smile','柯基':'corgi dog short legs adorable playful',
+  '泰迪':'toy poodle teddy dog curly fur cute','边牧':'border collie dog intelligent herding',
+  '萨摩耶':'samoyed dog white fluffy smiling','德牧':'german shepherd dog noble intelligent',
+  '法斗':'french bulldog cute compact bat ears','比熊':'bichon frise dog white fluffy small',
+  '布偶猫':'ragdoll cat blue eyes fluffy beautiful','英短':'british shorthair cat round face plush',
+  '橘猫':'orange tabby cat ginger warm friendly','黑猫':'black cat sleek elegant mysterious',
+  '白猫':'white cat pure elegant beautiful eyes','三花猫':'calico cat tricolor cute playful',
+  '暹罗猫':'siamese cat blue eyes elegant slender',
   '鸟':'beautiful bird perched on branch colorful feathers','小鸟':'small songbird delicate chirping',
   '鹰':'majestic eagle soaring powerful wings spread','孔雀':'peacock displaying colorful tail feathers',
   '鹤':'elegant crane bird graceful standing','天鹅':'graceful white swan on water',
@@ -533,6 +536,14 @@ const ACTION_MAP = {
   '写作':'writing creative author pen notebook','编程':'programming coding laptop developer',
   '下棋':'playing chess board game strategy','打麻将':'playing mahjong tiles Chinese game',
   '插花':'flower arranging ikebana artistic elegant','泡茶':'brewing tea ceremony traditional chinese',
+  '瑜伽':'person practicing yoga stretching pose',
+  '读书':'person reading a book absorbed','写字':'person writing calligraphy',
+  '奔跑':'person running jogging dynamic motion','散步':'person walking leisurely strolling',
+  '跳舞':'person dancing expressive movement','唱歌':'person singing vocalist performer',
+  '做饭':'person cooking in kitchen homely','喝茶':'person drinking tea serene meditative',
+  '打伞':'person holding umbrella in rain','戴帽子':'person wearing stylish hat',
+  '仰望':'person looking up at sky contemplative','眺望':'person gazing into distance panoramic',
+  '笑':'person smiling happy joyful radiant','哭':'person with tears emotional poignant',
 };
 
 // ---------- MOOD / STYLE ----------
@@ -602,9 +613,16 @@ function analyzeTitle(title) {
   // Sort keys by length (longer first) to match "大学生" before "大学", "小猫" before "猫"
   for (const [cat, dict] of dictPairs) {
     const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
+    const usedRanges = []; // track matched character positions to avoid sub-matches
     for (const key of sortedKeys) {
-      if (title.includes(key)) {
+      const idx = title.indexOf(key);
+      if (idx === -1) continue;
+      // Check if this range overlaps with an already-matched longer key
+      const end = idx + key.length;
+      const overlaps = usedRanges.some(([s, e]) => idx < e && end > s);
+      if (!overlaps) {
         matched[cat].push({ key, val: dict[key] });
+        usedRanges.push([idx, end]);
       }
     }
   }
@@ -636,8 +654,17 @@ function generatePrompt(title) {
   if (matched.animals.length) subjectParts.push(...matched.animals.slice(0, 2).map(m => m.val));
   if (matched.objects.length) subjectParts.push(...matched.objects.slice(0, 2).map(m => m.val));
 
-  // Actions (what the subject is doing)
-  if (matched.actions.length) subjectParts.push(...matched.actions.slice(0, 1).map(m => m.val));
+  // Actions — adapt to subject context
+  if (matched.actions.length) {
+    for (const act of matched.actions.slice(0, 1)) {
+      let desc = act.val;
+      // If subject is animal (not person), rewrite "person ..." to "[animal] ..."
+      if (subjectType === 'animal' && matched.people.length === 0) {
+        desc = desc.replace(/\bperson\b/g, 'the animal').replace(/\bpeople\b/g, 'animals');
+      }
+      subjectParts.push(desc);
+    }
+  }
 
   // Scene context (where)
   if (matched.places.length) subjectParts.push(...matched.places.slice(0, 1).map(m => m.val));
@@ -649,39 +676,99 @@ function generatePrompt(title) {
 
   // Fallback: if nothing matched, try to describe the title generically
   if (!subjectParts.length) {
-    // Simple character-level translation attempt for common words
     subjectParts.push(titleToGenericDesc(title));
   }
 
   const subjectStr = subjectParts.join(', ');
 
-  // Quality modifiers adapt to subject type
+  // Quality modifiers — strictly per Honor (荣耀)审核标准
   let qualityMods;
+
+  // === HONOR UNIVERSAL QUALITY RULES ===
+  const HONOR_COMP = 'subject occupies one-third to one-half of the frame, ' +
+    'clear visual focal point, balanced composition, no abrupt cropping, ' +
+    'subject not tilted, primary subject larger than secondary elements, ' +
+    'subject not too close to edges, layered depth with atmosphere';
+
+  const HONOR_COLOR = 'harmonious natural color palette, balanced exposure, ' +
+    'reasonable light and shadow, no overly bright or overly dark areas, ' +
+    'no jarring color combinations, no grey haze or dirty tones, ' +
+    'natural contrast between foreground and background';
+
+  const HONOR_BG = 'clean uncluttered background, background supports and enhances the subject, ' +
+    'clear visual hierarchy between primary and secondary elements';
+
+  const HONOR_Q = 'ultra high resolution 8K UHD, crystal clear sharp details, ' +
+    'no pixelation, no artifacts, no noise, no blur, ' +
+    'no oily texture, no heavy AI-generated feel, photorealistic natural look';
+
   if (subjectType === 'people') {
-    qualityMods = 'photorealistic portrait, 8K UHD, DSLR shallow depth of field, natural skin texture, ' +
-      'soft natural lighting, eye-level camera angle, sharp focus on face, beautiful bokeh background, ' +
-      'vertical phone wallpaper format, editorial photography style';
+    qualityMods = 'photorealistic portrait photography, ' +
+      'anatomically correct hands with exactly five fingers per hand, ' +
+      'correct body proportions, natural facial features, natural skin texture, ' +
+      'no deformed or distorted faces, no extra limbs, ' +
+      'person seen from back or side angle to avoid showing identifiable facial features, ' +
+      'soft natural lighting, DSLR shallow depth of field, ' +
+      HONOR_COMP + ', person head positioned in upper quarter to upper half of frame, ' +
+      'full body visible without any limbs being cut off, ' +
+      HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
   } else if (subjectType === 'animal') {
-    qualityMods = 'photorealistic wildlife photography, 8K UHD, DSLR quality, sharp focus on animal, ' +
-      'natural habitat, beautiful bokeh background, eye-level perspective, intimate close-up, ' +
-      'vertical phone wallpaper format, National Geographic style';
+    qualityMods = 'photorealistic wildlife photography, National Geographic quality, ' +
+      'correct animal anatomy and proportions, natural animal posture and expression, ' +
+      'pleasant friendly animal expression, no distorted or weird animal features, ' +
+      'sharp focus on animal, eye-level intimate perspective, ' +
+      'natural habitat setting, ' +
+      HONOR_COMP + ', ' + HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
   } else if (subjectType === 'object') {
-    qualityMods = 'photorealistic still life, 8K UHD, studio quality lighting, sharp details, ' +
-      'beautiful composition, shallow depth of field, warm tones, vertical phone wallpaper format';
+    qualityMods = 'photorealistic still life photography, studio quality, ' +
+      'correct object structure and texture, realistic material rendering, ' +
+      'appealing presentation, ' +
+      HONOR_COMP + ', ' + HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
   } else if (subjectType === 'action') {
-    qualityMods = 'photorealistic action photography, 8K UHD, dynamic composition, motion captured, ' +
-      'natural lighting, decisive moment, vertical phone wallpaper format, cinematic style';
+    qualityMods = 'photorealistic action photography, dynamic yet clear, ' +
+      'frozen decisive moment, correct human anatomy, ' +
+      'full body visible without limbs cut off, ' +
+      HONOR_COMP + ', ' + HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
+  } else if (subjectType === 'place') {
+    qualityMods = 'photorealistic architectural and landscape photography, ' +
+      'correct building structure with clear straight lines and edges, ' +
+      'no distorted or illogical architectural elements, ' +
+      'no warped text on signs or buildings, ' +
+      HONOR_COMP + ', ' + HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
   } else {
-    qualityMods = 'photorealistic, ultra high resolution, 8K UHD, DSLR quality, ' +
-      'natural soft lighting, clean composition, clear subject, beautiful colors, ' +
-      'vertical phone wallpaper format, professional photography';
+    qualityMods = 'photorealistic professional photography, ' +
+      HONOR_COMP + ', ' + HONOR_COLOR + ', ' + HONOR_BG + ', ' + HONOR_Q;
   }
 
-  const negative = 'no text, no watermark, no logo, no signature, no deformed hands, no deformed faces, ' +
-    'no extra fingers, no mutation, no grotesque, no blurry, no violence, no nudity, no religious symbols, ' +
-    'no brand logos, no advertisements, no children faces, no celebrity likeness';
+  // === HONOR NEGATIVE PROMPT — complete ban list per 荣耀审核规范 ===
+  const negative = [
+    // AI瑕疵 (画面完整度审核)
+    'no deformed hands', 'no extra fingers', 'no missing fingers', 'no fused fingers',
+    'no deformed faces', 'no distorted features', 'no extra limbs', 'no wrong proportions',
+    'no floating objects', 'no broken edges', 'no illogical scenes',
+    'no oily skin', 'no heavy AI feel', 'no pixelation', 'no blur', 'no noise', 'no artifacts',
+    // 内容安全 (通用规范第1-14条)
+    'no violence', 'no blood', 'no gore', 'no weapons', 'no guns', 'no knives',
+    'no nudity', 'no sexual content', 'no provocative poses', 'no revealing clothing',
+    'no religious symbols', 'no crosses', 'no temples interior',
+    'no political symbols', 'no national flags', 'no political figures',
+    'no military uniforms', 'no police',
+    'no cigarettes', 'no tobacco', 'no smoking', 'no alcohol labels', 'no wine bottles',
+    'no drugs', 'no gambling', 'no casino',
+    'no tattoos', 'no occult', 'no superstition', 'no death imagery', 'no skulls',
+    'no disasters', 'no accidents', 'no dark morbid imagery',
+    'no children faces', 'no underage persons',
+    'no celebrity likeness', 'no identifiable real person face',
+    'no brand logos', 'no advertisements', 'no product placement', 'no commercial text',
+    'no competitor products', 'no phone brands', 'no car license plates',
+    // 视觉质量 (构图/色彩/背景审核)
+    'no text', 'no watermark', 'no logo', 'no signature', 'no stamp',
+    'no harsh colors', 'no oversaturated', 'no heavy filter', 'no grey haze', 'no dirty colors',
+    'no overexposed', 'no underexposed', 'no cluttered background', 'no chaotic composition',
+    'no limbs cut off', 'no cropped body parts', 'no tilted subject',
+  ].join(', ');
 
-  return `${subjectStr}, ${qualityMods}. Negative: ${negative}`;
+  return `${subjectStr}, ${qualityMods}, vertical portrait 9:16 aspect ratio phone lockscreen wallpaper. Negative: ${negative}`;
 }
 
 // ===== FALLBACK: generic title → description =====
