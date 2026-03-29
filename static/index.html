@@ -343,62 +343,235 @@ body::after{
   <footer id="site-footer">AI锁屏图片生成器 · 基于荣耀魔法画报审核标准 · 图片由 AI 自动生成仅供参考</footer>
 </div>
 <script>
-// ===== KEYWORD DICTIONARIES FOR CHINESE→ENGLISH PROMPT MAPPING =====
-const SCENE_MAP = {
-  '海边':'seaside coast ocean waves','海滩':'sandy beach tropical shore','大海':'vast ocean seascape',
-  '山':'mountain peaks alpine','雪山':'snow-capped mountains','湖':'serene lake reflection',
-  '森林':'lush forest woodland','竹林':'bamboo forest grove','树林':'dense woodland trees',
-  '草原':'vast grassland prairie','沙漠':'golden desert sand dunes','峡谷':'grand canyon ravine',
-  '瀑布':'majestic waterfall cascade','河':'winding river stream','溪':'clear mountain creek',
-  '古镇':'ancient Chinese water town traditional architecture','古城':'ancient walled city heritage',
-  '水乡':'Chinese water village canal boats','胡同':'Beijing hutong alley traditional',
-  '江南':'Jiangnan southern China water town white walls','园林':'Chinese classical garden pavilion',
-  '寺庙':'traditional East Asian temple architecture','塔':'ancient pagoda tower',
-  '城市':'modern city skyline urban','都市':'metropolitan cityscape skyscrapers',
-  '街道':'charming street alley cobblestone','小巷':'narrow atmospheric alley lane',
-  '咖啡':'cozy cafe interior warm ambiance','书店':'bookstore library warm interior',
-  '花园':'blooming garden flowers','公园':'scenic park greenery','田野':'countryside farmland fields',
-  '稻田':'golden rice paddy terraced fields','茶园':'tea plantation rolling hills',
-  '樱花':'cherry blossom sakura trees pink petals','银杏':'golden ginkgo tree lined avenue',
-  '梅花':'plum blossom branches delicate','荷花':'lotus flowers pond serene',
-  '薰衣草':'lavender field purple rows','向日葵':'sunflower field golden',
-  '星空':'starry night sky milky way','极光':'aurora borealis northern lights',
-  '日出':'sunrise golden hour horizon','日落':'sunset warm golden sky','黄昏':'dusk twilight sky',
-  '夜景':'night cityscape illuminated','灯塔':'lighthouse coastal beacon','桥':'elegant bridge architecture',
-  '雨':'rainy atmosphere wet reflections','雪':'snowy winter landscape','雾':'misty foggy ethereal',
-  '秋':'autumn fall foliage golden leaves','春':'spring blossoms fresh greenery',
-  '夏':'summer vibrant lush green','冬':'winter frost ice cold beauty',
-  '猫':'cute cat feline portrait','狗':'adorable dog canine','鸟':'beautiful bird perched',
-  '蝴蝶':'colorful butterfly wings','鹿':'graceful deer in nature','鱼':'fish underwater aquatic',
-  '露营':'camping tent outdoor adventure','徒步':'hiking trail mountain path',
-  '骑行':'cycling scenic route','冲浪':'surfing ocean waves','滑雪':'skiing snowy slope',
-  '美食':'gourmet food plating artistic','甜品':'dessert pastry delicate beautiful',
-  '花':'beautiful flowers botanical close-up','叶':'leaves foliage natural texture',
-  '云':'dramatic cloudscape sky','月亮':'moonlit night lunar glow','彩虹':'rainbow after rain colorful',
-  '岛':'tropical island paradise','礁石':'rocky coastal reef waves','悬崖':'dramatic cliff edge',
-  '窗':'window view atmospheric light','门':'ornate doorway entrance architectural',
-  '阶梯':'stairway steps ascending atmospheric','小路':'winding path through nature',
+// ===== COMPREHENSIVE CHINESE→ENGLISH KEYWORD DICTIONARY =====
+// Organized by category. Each entry: Chinese keyword → English description.
+// Priority: subject (人/动物/物体) > scene (场景) > mood/time (辅助)
+
+// ---------- SUBJECT: PEOPLE & IDENTITY ----------
+const PEOPLE_MAP = {
+  '大学生':'young university college student studying on campus','学生':'student studying at school desk',
+  '女孩':'young woman girl beautiful portrait','男孩':'young man boy portrait','女人':'elegant woman portrait',
+  '男人':'handsome man portrait','老人':'wise elderly person portrait dignified',
+  '少女':'young teenage girl fresh and youthful','少年':'young teenage boy energetic',
+  '情侣':'romantic couple together intimate','恋人':'lovers couple romantic tender',
+  '母亲':'mother maternal warm loving','父亲':'father paternal strong gentle',
+  '孩子':'child playing happy innocent','宝宝':'cute baby adorable infant',
+  '姐妹':'sisters together bonding friendship','兄弟':'brothers together bonding',
+  '闺蜜':'best girlfriends friendship fun','朋友':'close friends together happy',
+  '旅人':'lone traveler adventurer wandering','背包客':'backpacker traveler exploring',
+  '舞者':'dancer performing graceful movement','画家':'artist painter creating artwork',
+  '音乐家':'musician playing instrument passionately','摄影师':'photographer with camera shooting',
+  '厨师':'chef cooking in kitchen professional','医生':'doctor in white coat professional',
+  '老师':'teacher educator in classroom','工程师':'engineer at work focused',
+  '农民':'farmer in field working harvest','渔民':'fisherman on boat at sea',
+  '牧羊人':'shepherd with flock pastoral','手艺人':'craftsman artisan working handmade',
+  '僧人':'monk meditating peaceful','武者':'martial artist kung fu practitioner',
+  '运动员':'athlete sports dynamic action','瑜伽':'person practicing yoga stretching pose',
+  '读书':'person reading a book absorbed','写字':'person writing calligraphy',
+  '奔跑':'person running jogging dynamic motion','散步':'person walking leisurely strolling',
+  '跳舞':'person dancing expressive movement','唱歌':'person singing vocalist performer',
+  '做饭':'person cooking in kitchen homely','喝茶':'person drinking tea serene meditative',
+  '打伞':'person holding umbrella in rain','戴帽子':'person wearing stylish hat',
+  '背影':'person seen from behind silhouette contemplative',
+  '仰望':'person looking up at sky contemplative','眺望':'person gazing into distance panoramic',
+  '拥抱':'people hugging embrace warm tender','牵手':'couple holding hands walking together',
+  '笑':'person smiling happy joyful radiant','哭':'person with tears emotional poignant',
 };
 
+// ---------- SUBJECT: ANIMALS ----------
+const ANIMAL_MAP = {
+  '猫':'cute cat feline close-up portrait soft fur','小猫':'adorable kitten playful tiny',
+  '狗':'loyal dog canine portrait expressive eyes','小狗':'cute puppy playful adorable',
+  '鸟':'beautiful bird perched on branch colorful feathers','小鸟':'small songbird delicate chirping',
+  '鹰':'majestic eagle soaring powerful wings spread','孔雀':'peacock displaying colorful tail feathers',
+  '鹤':'elegant crane bird graceful standing','天鹅':'graceful white swan on water',
+  '鸽子':'white dove peaceful flight','燕子':'swallow bird swift flying',
+  '鹦鹉':'colorful parrot vibrant feathers','猫头鹰':'wise owl perched nocturnal',
+  '蝴蝶':'colorful butterfly wings delicate on flower','蜻蜓':'dragonfly hovering iridescent wings',
+  '蜜蜂':'honeybee on flower pollinating','萤火虫':'fireflies glowing magical night',
+  '鹿':'graceful deer in forest gentle eyes','梅花鹿':'spotted deer sika deer elegant',
+  '兔子':'cute rabbit bunny fluffy adorable','松鼠':'squirrel on tree branch bushy tail',
+  '狐狸':'red fox clever beautiful in nature','狼':'wolf majestic wild howling',
+  '熊':'bear in wilderness powerful','熊猫':'giant panda cute eating bamboo',
+  '大熊猫':'giant panda black and white adorable','小熊猫':'red panda cute furry tree',
+  '河狸':'cute beaver by river building dam','水獭':'playful otter in water swimming',
+  '考拉':'koala bear on eucalyptus tree sleepy cute','企鹅':'penguin standing antarctic adorable',
+  '海豚':'dolphin jumping out of ocean playful','鲸':'whale breaching ocean majestic',
+  '海龟':'sea turtle swimming underwater graceful','鱼':'fish underwater colorful aquatic coral',
+  '锦鲤':'koi fish swimming in pond colorful','金鱼':'goldfish in clear water ornamental',
+  '马':'horse galloping majestic powerful mane flowing','骏马':'stallion running wild free spirit',
+  '羊':'sheep lamb fluffy pastoral meadow','牛':'cattle cow pastoral farmland',
+  '鸡':'rooster hen colorful feathers farm','猪':'pig piglet cute farm animal',
+  '猴子':'monkey playful primate clever','大象':'elephant majestic gentle giant',
+  '长颈鹿':'giraffe tall graceful savanna','狮子':'lion majestic powerful king',
+  '老虎':'tiger powerful stripes fierce beauty','豹':'leopard spotted agile predator',
+  '蛇':'snake coiled scales pattern','乌龟':'tortoise slow steady wise',
+  '青蛙':'frog green amphibian cute','螃蟹':'crab on beach claws',
+  '蜗牛':'snail slow spiral shell','瓢虫':'ladybug red spots on leaf',
+  '刺猬':'hedgehog curled up cute spiny','仓鼠':'hamster small cute fluffy pet',
+};
+
+// ---------- SUBJECT: OBJECTS & FOOD ----------
+const OBJECT_MAP = {
+  '美食':'gourmet food artistic plating delicious close-up','食物':'delicious food appetizing',
+  '甜品':'dessert pastry delicate beautiful patisserie','蛋糕':'beautiful layered cake decorated',
+  '咖啡':'cup of coffee latte art steam cozy','奶茶':'bubble milk tea drink aesthetic',
+  '茶':'chinese tea ceremony teapot cups elegant','酒':'wine glass elegant dining',
+  '水果':'fresh colorful fruits arrangement','面包':'artisan bread bakery warm golden crust',
+  '拉面':'japanese ramen noodle soup steaming','火锅':'hotpot steam delicious chinese cuisine',
+  '寿司':'sushi japanese food artistic plating','饺子':'chinese dumplings handmade traditional',
+  '月饼':'mooncake mid-autumn festival traditional','汤圆':'tangyuan sweet rice balls festive',
+  '冰淇淋':'ice cream gelato colorful scoops','巧克力':'chocolate dessert rich decadent',
+  '书':'open book pages reading literary','日记':'journal diary handwritten pages',
+  '相机':'vintage camera photography equipment','手表':'luxury wristwatch timepiece elegant',
+  '钢琴':'grand piano keys musical instrument','吉他':'acoustic guitar musical instrument warm',
+  '小提琴':'violin classical music instrument elegant','风铃':'wind chime gentle breeze tinkling',
+  '灯笼':'red chinese lantern glowing festive','蜡烛':'candle flame warm flickering glow',
+  '气球':'colorful balloons floating celebration','风筝':'kite flying in blue sky colorful',
+  '自行车':'vintage bicycle parked charming scene','帆船':'sailboat on ocean sailing adventure',
+  '热气球':'hot air balloon floating colorful sky','摩天轮':'ferris wheel amusement park lights',
+  '伞':'umbrella colorful rain protection','雨伞':'open umbrella rainy day atmospheric',
+  '帐篷':'camping tent under stars outdoor adventure',
+  '花瓶':'vase with flowers still life arrangement','陶瓷':'ceramic pottery handcrafted artistic',
+  '玩具':'toys colorful playful childhood','积木':'building blocks colorful creative',
+  '地球仪':'globe world map educational','望远镜':'telescope stargazing astronomy',
+  '画':'painting artwork canvas artistic masterpiece','油画':'oil painting artistic texture rich colors',
+};
+
+// ---------- SCENE: NATURE ----------
+const NATURE_MAP = {
+  '海边':'seaside coast ocean waves crashing shore','海滩':'sandy tropical beach turquoise water',
+  '大海':'vast deep ocean seascape horizon','山':'mountain peaks alpine majestic',
+  '雪山':'snow-capped mountains winter alpine','湖':'serene calm lake mirror reflection',
+  '森林':'lush dense forest woodland dappled light','竹林':'bamboo forest green tall grove',
+  '树林':'woodland trees canopy nature','草原':'vast green grassland prairie rolling hills',
+  '沙漠':'golden desert sand dunes vast empty','峡谷':'grand canyon deep ravine dramatic',
+  '瀑布':'majestic waterfall cascading mist rainbow','河':'winding river flowing through landscape',
+  '溪':'clear mountain creek babbling brook stones','小溪':'gentle stream flowing crystal clear',
+  '池塘':'tranquil pond lily pads reflection','湿地':'wetland marshes birds nature reserve',
+  '海岛':'tropical island paradise palm trees','岛':'island surrounded by clear ocean',
+  '礁石':'rocky coastal reef waves crashing','悬崖':'dramatic cliff edge ocean view',
+  '洞穴':'cave interior stalactites mysterious','冰川':'glacier ice blue frozen majestic',
+  '温泉':'hot spring steaming natural pool','田野':'countryside farmland fields golden',
+  '稻田':'golden rice paddy terraced fields water','茶园':'tea plantation rolling green hills',
+  '果园':'orchard fruit trees blossoming','麦田':'wheat field golden ripe harvest',
+  '花田':'flower field vast colorful blooming',
+  '星空':'starry night sky milky way galaxy','极光':'aurora borealis northern lights colorful',
+  '云':'dramatic cloudscape sky fluffy cumulus','月亮':'full moon moonlit night luminous glow',
+  '彩虹':'rainbow arching across sky after rain','日出':'sunrise golden hour horizon warm glow',
+  '日落':'sunset dramatic orange purple sky silhouette','黄昏':'dusk twilight purple orange sky',
+  '雨':'rain falling wet reflections puddles atmospheric','雪':'snow falling winter white landscape',
+  '雾':'mist fog ethereal mysterious atmospheric','霜':'frost ice crystals morning cold beautiful',
+  '雷':'thunderstorm lightning dramatic sky powerful','风':'wind blowing grass hair flowing',
+  '花':'beautiful flowers botanical blooming close-up','叶':'leaves foliage natural veins texture',
+  '树':'majestic tree ancient roots branches canopy','草':'green grass meadow fresh dew',
+  '竹':'bamboo stalks green elegant minimal','荷花':'lotus flower pink pond serene',
+  '樱花':'cherry blossom sakura pink petals spring','银杏':'golden ginkgo tree autumn avenue',
+  '梅花':'plum blossom branches delicate winter','薰衣草':'lavender field purple rows fragrant',
+  '向日葵':'sunflower field golden sunny','玫瑰':'red rose romantic beautiful petals',
+  '牡丹':'peony flower lush pink elegant Chinese','菊花':'chrysanthemum autumn flower detailed',
+  '桃花':'peach blossom spring pink branch','兰花':'orchid elegant delicate exotic',
+  '郁金香':'tulip field colorful spring Netherlands','油菜花':'rapeseed canola yellow flower field',
+};
+
+// ---------- SCENE: PLACES & ARCHITECTURE ----------
+const PLACE_MAP = {
+  '学校':'school campus buildings academic courtyard','大学':'university campus grand academic buildings',
+  '教室':'classroom interior desks learning','图书馆':'library interior books shelves quiet',
+  '操场':'school playground sports field running track',
+  '古镇':'ancient Chinese water town traditional architecture','古城':'ancient walled city heritage stone',
+  '水乡':'Chinese water village canal boats reflection','胡同':'Beijing hutong narrow alley traditional',
+  '江南':'Jiangnan southern China water town white walls black tiles',
+  '园林':'Chinese classical garden pavilion rockery pond','四合院':'siheyuan Chinese courtyard house traditional',
+  '城市':'modern city skyline urban skyscrapers','都市':'metropolitan cityscape night lights',
+  '街道':'charming street cobblestone shops atmospheric','小巷':'narrow atmospheric alley lanterns old walls',
+  '市场':'vibrant market stalls colorful goods','夜市':'night market street food lights lively',
+  '咖啡馆':'cozy cafe interior warm wood aesthetic','书店':'bookstore interior shelves warm light cozy',
+  '餐厅':'restaurant dining elegant interior','酒吧':'bar interior mood lighting drinks',
+  '医院':'hospital clean white interior','办公室':'modern office workspace desk',
+  '工厂':'factory industrial machinery production','农场':'farm barn rural agricultural',
+  '花园':'blooming garden flowers lush green','公园':'scenic park trees greenery bench path',
+  '游乐场':'amusement park rides colorful lights fun','动物园':'zoo animals enclosures nature',
+  '水族馆':'aquarium underwater tunnel fish sharks blue',
+  '博物馆':'museum interior exhibits gallery elegant','美术馆':'art gallery white walls paintings',
+  '电影院':'cinema theater dark screen seats','剧院':'grand theater stage curtains ornate',
+  '寺庙':'traditional East Asian temple architecture incense','教堂':'cathedral church interior stained glass light',
+  '城堡':'castle medieval stone towers fairy tale','宫殿':'grand palace ornate royal architecture',
+  '灯塔':'lighthouse on cliff coastal beacon light','桥':'elegant bridge spanning water architecture',
+  '码头':'dock pier harbor boats water','港口':'busy harbor ships cranes containers',
+  '机场':'airport terminal modern travel departure','火车站':'train station platform rails travel',
+  '地铁':'subway metro underground station modern','高铁':'high-speed train modern sleek railway',
+  '长城':'Great Wall of China winding mountains historic','故宫':'Forbidden City Beijing imperial palace grand',
+  '天安门':'Tiananmen Square Beijing architecture landmark','西湖':'West Lake Hangzhou scenic pagoda willows',
+  '黄山':'Huangshan Yellow Mountain pine sea of clouds','泰山':'Mount Tai sunrise sacred majestic',
+  '敦煌':'Dunhuang Mogao Caves murals desert','丽江':'Lijiang old town Yunnan traditional charming',
+  '三亚':'Sanya tropical beach resort Hainan','苏州':'Suzhou garden water town classical beauty',
+  '巴黎':'Paris Eiffel Tower romantic European city','东京':'Tokyo neon lights modern Japanese metropolis',
+  '纽约':'New York City skyline Manhattan bustling','伦敦':'London Big Ben Thames River iconic',
+};
+
+// ---------- ACTIVITIES & ACTIONS ----------
+const ACTION_MAP = {
+  '旅行':'traveling exploring new places adventure','旅游':'tourism sightseeing vacation scenic',
+  '露营':'camping tent campfire under stars outdoor','徒步':'hiking trail mountain path nature walk',
+  '骑行':'cycling bicycle scenic route ride','冲浪':'surfing ocean waves dynamic splash',
+  '滑雪':'skiing snowy slope winter sport mountain','攀岩':'rock climbing cliff adventure extreme',
+  '潜水':'scuba diving underwater coral reef ocean','钓鱼':'fishing by lake river peaceful hobby',
+  '游泳':'swimming in pool or ocean refreshing','划船':'rowing boat calm water serene',
+  '跑步':'running jogging morning exercise outdoors','健身':'fitness gym workout exercise strength',
+  '打球':'playing ball sports court dynamic action','踢球':'playing football soccer field action',
+  '打篮球':'playing basketball court slam dunk','打网球':'tennis court racket swing athletic',
+  '野餐':'picnic on grass blanket food outdoors','烧烤':'barbecue grill outdoor cooking gathering',
+  '赏花':'admiring flowers in garden spring outing','赏月':'watching the moon mid-autumn contemplative',
+  '放风筝':'flying kite in park windy blue sky','放烟花':'fireworks display night sky colorful',
+  '逛街':'shopping walking city street shops bags','购物':'shopping mall stores buying retail',
+  '化妆':'applying makeup beauty cosmetics mirror','穿搭':'fashion outfit stylish clothing coordination',
+  '画画':'painting drawing creating art canvas brush','弹琴':'playing piano keyboard music performance',
+  '种花':'planting flowers gardening hands in soil','浇花':'watering plants garden care nurturing',
+  '遛狗':'walking a dog in park leash outdoor','喂猫':'feeding a cat gentle caring domestic',
+  '做瑜伽':'practicing yoga pose meditation flexibility','冥想':'meditation peaceful sitting serene mindful',
+  '写作':'writing creative author pen notebook','编程':'programming coding laptop developer',
+  '下棋':'playing chess board game strategy','打麻将':'playing mahjong tiles Chinese game',
+  '插花':'flower arranging ikebana artistic elegant','泡茶':'brewing tea ceremony traditional chinese',
+};
+
+// ---------- MOOD / STYLE ----------
 const MOOD_MAP = {
   '温暖':'warm cozy inviting golden tones','宁静':'peaceful calm tranquil serene',
-  '浪漫':'romantic dreamy soft pink hues','清新':'fresh crisp clean bright',
-  '梦幻':'dreamlike ethereal magical fairy-tale','神秘':'mysterious moody atmospheric dark',
-  '壮观':'spectacular grand magnificent breathtaking','活力':'vibrant energetic dynamic lively',
-  '治愈':'healing soothing comforting gentle','孤独':'solitary contemplative lone figure',
-  '复古':'vintage retro nostalgic warm tones','文艺':'artistic literary aesthetic poetic',
-  '简约':'minimal clean simple elegant','奢华':'luxurious opulent rich elegant',
-  '童话':'fairy-tale whimsical enchanted storybook','悠闲':'leisurely relaxed laid-back peaceful',
+  '浪漫':'romantic dreamy soft pink hues','清新':'fresh crisp clean bright airy',
+  '梦幻':'dreamlike ethereal magical fairy-tale','神秘':'mysterious moody atmospheric dark shadows',
+  '壮观':'spectacular grand magnificent breathtaking awe','活力':'vibrant energetic dynamic lively colorful',
+  '治愈':'healing soothing comforting gentle soft','孤独':'solitary contemplative lone figure melancholy',
+  '复古':'vintage retro nostalgic warm film grain','文艺':'artistic literary aesthetic poetic refined',
+  '简约':'minimal clean simple elegant negative space','奢华':'luxurious opulent rich gold elegant',
+  '童话':'fairy-tale whimsical enchanted storybook magical','悠闲':'leisurely relaxed laid-back peaceful slow',
+  '欢乐':'joyful happy cheerful celebration festive','悲伤':'melancholy sad somber emotional pensive',
+  '热闹':'bustling lively crowded festive energetic','安静':'quiet still silence solitude calm',
+  '自由':'free liberated open expansive boundless','勇敢':'brave courageous bold heroic determined',
+  '可爱':'cute adorable kawaii charming lovely','帅气':'handsome cool stylish striking',
+  '优雅':'elegant graceful refined sophisticated','狂野':'wild untamed raw fierce powerful',
+  '古典':'classical traditional elegant timeless ornate','现代':'modern contemporary sleek minimal',
+  '科幻':'sci-fi futuristic neon cyberpunk technology','奇幻':'fantasy magical mythical supernatural',
+  '唯美':'aesthetically beautiful artistic ethereal fine art','ins风':'instagram aesthetic trendy minimal stylish',
+  '国风':'chinese traditional style ink painting elegant','水墨':'chinese ink wash painting artistic',
+  '日系':'japanese style soft pastel clean minimal','韩系':'korean style soft elegant minimal',
 };
 
+// ---------- TIME / SEASON ----------
 const TIME_MAP = {
-  '早晨':'early morning soft dawn light','清晨':'dawn first light golden',
-  '上午':'late morning bright natural light','中午':'midday bright overhead sun',
-  '下午':'afternoon warm directional sunlight','傍晚':'late afternoon golden hour warm',
-  '黄昏':'dusk twilight purple orange sky','夜晚':'nighttime dark blue ambient',
-  '深夜':'late night quiet moonlit','日出':'sunrise golden horizon warm',
-  '日落':'sunset dramatic orange purple sky','春天':'springtime fresh blooming',
-  '夏天':'summertime vibrant lush','秋天':'autumn golden warm hues','冬天':'winter cold frosty serene',
+  '早晨':'early morning soft dawn light','清晨':'dawn first light golden hour',
+  '上午':'late morning bright natural light','中午':'midday bright overhead sunlight',
+  '下午':'afternoon warm directional golden sunlight','傍晚':'late afternoon golden hour warm long shadows',
+  '黄昏':'dusk twilight purple orange gradient sky','夜晚':'nighttime dark blue ambient city lights',
+  '深夜':'late night quiet moonlit starry','凌晨':'predawn blue hour quiet still',
+  '日出':'sunrise golden horizon warm glow rays','日落':'sunset dramatic orange purple sky clouds',
+  '春天':'springtime fresh blooming green renewal','春':'spring blossoms fresh greenery new life',
+  '夏天':'summertime vibrant lush green hot','夏':'summer bright sunny warm tropical',
+  '秋天':'autumn golden warm hues falling leaves','秋':'autumn fall foliage golden maple red',
+  '冬天':'winter cold frosty serene snow quiet','冬':'winter frost ice snow cold bare beauty',
+  '新年':'Chinese New Year festive red lanterns spring festival',
+  '中秋':'Mid-Autumn Festival moon mooncake lanterns','端午':'Dragon Boat Festival traditional summer',
+  '圣诞':'Christmas winter festive lights decorations','情人节':'Valentines Day romantic hearts love',
 };
 
 // ===== SENSITIVE CONTENT DETECTION =====
@@ -414,59 +587,134 @@ const SENSITIVE_WORDS = [
   '纹身','祭拜','迷信','图腾',
 ];
 
-// ===== ANALYZE TITLE → STRUCTURED SCENE =====
+// ===== SMART TITLE ANALYSIS =====
+// Priority: people > animals > objects > actions > places > nature > mood > time
 function analyzeTitle(title) {
-  let scenes = [], moods = [], times = [], elements = [];
+  const matched = { people:[], animals:[], objects:[], actions:[], places:[], nature:[], moods:[], times:[] };
 
-  for (const [key, val] of Object.entries(SCENE_MAP)) {
-    if (title.includes(key)) { scenes.push(val); elements.push(key); }
-  }
-  for (const [key, val] of Object.entries(MOOD_MAP)) {
-    if (title.includes(key)) moods.push(val);
-  }
-  for (const [key, val] of Object.entries(TIME_MAP)) {
-    if (title.includes(key)) times.push(val);
+  // Match against all dictionaries
+  const dictPairs = [
+    ['people', PEOPLE_MAP], ['animals', ANIMAL_MAP], ['objects', OBJECT_MAP],
+    ['actions', ACTION_MAP], ['places', PLACE_MAP], ['nature', NATURE_MAP],
+    ['moods', MOOD_MAP], ['times', TIME_MAP],
+  ];
+
+  // Sort keys by length (longer first) to match "大学生" before "大学", "小猫" before "猫"
+  for (const [cat, dict] of dictPairs) {
+    const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
+    for (const key of sortedKeys) {
+      if (title.includes(key)) {
+        matched[cat].push({ key, val: dict[key] });
+      }
+    }
   }
 
-  // Default fallbacks
-  if (!scenes.length) scenes.push('beautiful natural landscape scenic vista');
-  if (!moods.length) moods.push('peaceful serene natural beauty');
-  if (!times.length) times.push('golden hour warm natural lighting');
+  return matched;
+}
 
-  return { scenes, moods, times, elements };
+// ===== DETERMINE SUBJECT TYPE FOR PROMPT STRATEGY =====
+function getSubjectType(matched) {
+  if (matched.people.length > 0) return 'people';
+  if (matched.animals.length > 0) return 'animal';
+  if (matched.objects.length > 0) return 'object';
+  if (matched.actions.length > 0) return 'action';
+  if (matched.places.length > 0) return 'place';
+  if (matched.nature.length > 0) return 'nature';
+  return 'generic';
 }
 
 // ===== GENERATE ENGLISH PROMPT =====
 function generatePrompt(title) {
-  const { scenes, moods, times } = analyzeTitle(title);
+  const matched = analyzeTitle(title);
+  const subjectType = getSubjectType(matched);
 
-  const sceneStr = scenes.slice(0, 3).join(', ');
-  const moodStr = moods.slice(0, 2).join(', ');
-  const timeStr = times.slice(0, 2).join(', ');
+  // Build subject description (THE CORE — what the image is about)
+  let subjectParts = [];
 
-  const base = [
-    sceneStr,
-    moodStr,
-    timeStr,
-    'photorealistic, ultra high resolution, 8K UHD, DSLR quality',
-    'natural soft lighting, clean composition, clear subject in center',
-    'vertical portrait orientation, phone wallpaper format',
-    'professional photography, sharp focus, beautiful bokeh background',
-    'harmonious color palette, balanced exposure, fine detail',
-    'rule of thirds composition, layered depth, atmospheric perspective',
-  ].join(', ');
+  // Primary subjects (people/animals/objects)
+  if (matched.people.length)  subjectParts.push(...matched.people.slice(0, 2).map(m => m.val));
+  if (matched.animals.length) subjectParts.push(...matched.animals.slice(0, 2).map(m => m.val));
+  if (matched.objects.length) subjectParts.push(...matched.objects.slice(0, 2).map(m => m.val));
 
-  const negative = [
-    'no text', 'no watermark', 'no logo', 'no signature', 'no stamp',
-    'no deformed hands', 'no deformed faces', 'no extra fingers', 'no mutation',
-    'no grotesque', 'no ugly', 'no blurry', 'no pixelated', 'no noise',
-    'no violence', 'no blood', 'no nudity', 'no religious symbols',
-    'no brand logos', 'no advertisements', 'no political symbols',
-    'no children faces', 'no celebrity likeness', 'no harsh colors',
-    'no cluttered background', 'no heavy filter', 'no vignette',
-  ].join(', ');
+  // Actions (what the subject is doing)
+  if (matched.actions.length) subjectParts.push(...matched.actions.slice(0, 1).map(m => m.val));
 
-  return `${base}. Negative: ${negative}`;
+  // Scene context (where)
+  if (matched.places.length) subjectParts.push(...matched.places.slice(0, 1).map(m => m.val));
+  if (matched.nature.length) subjectParts.push(...matched.nature.slice(0, 2).map(m => m.val));
+
+  // Mood & time (how it feels / when)
+  if (matched.moods.length) subjectParts.push(...matched.moods.slice(0, 1).map(m => m.val));
+  if (matched.times.length) subjectParts.push(...matched.times.slice(0, 1).map(m => m.val));
+
+  // Fallback: if nothing matched, try to describe the title generically
+  if (!subjectParts.length) {
+    // Simple character-level translation attempt for common words
+    subjectParts.push(titleToGenericDesc(title));
+  }
+
+  const subjectStr = subjectParts.join(', ');
+
+  // Quality modifiers adapt to subject type
+  let qualityMods;
+  if (subjectType === 'people') {
+    qualityMods = 'photorealistic portrait, 8K UHD, DSLR shallow depth of field, natural skin texture, ' +
+      'soft natural lighting, eye-level camera angle, sharp focus on face, beautiful bokeh background, ' +
+      'vertical phone wallpaper format, editorial photography style';
+  } else if (subjectType === 'animal') {
+    qualityMods = 'photorealistic wildlife photography, 8K UHD, DSLR quality, sharp focus on animal, ' +
+      'natural habitat, beautiful bokeh background, eye-level perspective, intimate close-up, ' +
+      'vertical phone wallpaper format, National Geographic style';
+  } else if (subjectType === 'object') {
+    qualityMods = 'photorealistic still life, 8K UHD, studio quality lighting, sharp details, ' +
+      'beautiful composition, shallow depth of field, warm tones, vertical phone wallpaper format';
+  } else if (subjectType === 'action') {
+    qualityMods = 'photorealistic action photography, 8K UHD, dynamic composition, motion captured, ' +
+      'natural lighting, decisive moment, vertical phone wallpaper format, cinematic style';
+  } else {
+    qualityMods = 'photorealistic, ultra high resolution, 8K UHD, DSLR quality, ' +
+      'natural soft lighting, clean composition, clear subject, beautiful colors, ' +
+      'vertical phone wallpaper format, professional photography';
+  }
+
+  const negative = 'no text, no watermark, no logo, no signature, no deformed hands, no deformed faces, ' +
+    'no extra fingers, no mutation, no grotesque, no blurry, no violence, no nudity, no religious symbols, ' +
+    'no brand logos, no advertisements, no children faces, no celebrity likeness';
+
+  return `${subjectStr}, ${qualityMods}. Negative: ${negative}`;
+}
+
+// ===== FALLBACK: generic title → description =====
+function titleToGenericDesc(title) {
+  // Common Chinese words → simple English (last resort)
+  const miniDict = {
+    '美丽':'beautiful','可爱':'cute adorable','帅':'handsome cool',
+    '漂亮':'pretty beautiful','好看':'good-looking attractive',
+    '快乐':'happy joyful','幸福':'happiness bliss',
+    '成功':'success achievement','梦想':'dream aspiration',
+    '希望':'hope light','力量':'power strength',
+    '爱':'love heart tender','家':'home family cozy warmth',
+    '生活':'daily life lifestyle','工作':'working professional',
+    '学习':'studying learning knowledge','成长':'growth development',
+    '回忆':'memory nostalgia warm','未来':'future forward hopeful',
+    '自然':'nature natural scenery','世界':'world globe diverse',
+    '天空':'sky vast open blue','大地':'earth land vast',
+    '光':'light rays beam golden','影':'shadow silhouette contrast',
+    '色彩':'colors vibrant palette','水':'water flowing liquid clear',
+    '火':'fire flame warm glow','风景':'scenic landscape view',
+    '时光':'passing time nostalgic moments','故事':'story narrative atmospheric',
+    '青春':'youth youthful energetic vibrant','童年':'childhood innocent playful',
+    '夕阳':'setting sun golden warm dusk','朝阳':'rising sun morning hope fresh',
+  };
+  const parts = [];
+  for (const [k, v] of Object.entries(miniDict)) {
+    if (title.includes(k)) parts.push(v);
+  }
+  // If still nothing, create a very generic aesthetic wallpaper prompt
+  if (!parts.length) {
+    return 'beautiful aesthetic scene, artistic composition, visually striking, atmospheric, cinematic mood';
+  }
+  return parts.slice(0, 3).join(', ');
 }
 
 // ===== CHECK CONTENT SAFETY =====
@@ -489,10 +737,11 @@ function assessQuality(title, imageLoaded) {
   if (safety.length > 0) {
     return { status: 'warn', label: '需人工筛选', issues: safety, score: 4 };
   }
-  // Heuristic: titles with very few keywords may produce generic results
-  const { scenes } = analyzeTitle(title);
-  const matchCount = scenes.length;
-  if (matchCount <= 1 && title.length < 4) {
+  // Check how many keywords were matched to gauge prompt quality
+  const matched = analyzeTitle(title);
+  const totalMatches = matched.people.length + matched.animals.length + matched.objects.length +
+    matched.actions.length + matched.places.length + matched.nature.length;
+  if (totalMatches === 0 && title.length < 4) {
     return { status: 'warn', label: '需人工筛选', issues: ['标题过短，生成结果可能不够精准'], score: 6 };
   }
   return { status: 'ok', label: '可用', issues: [], score: 9 };
